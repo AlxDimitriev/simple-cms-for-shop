@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block app_content %}
+    {% for user in users %}
+        <table>
+            <tr valign="top">
+                <td>
+                    {{ user.username }}
+                    <a href="{{ url_for('main.manage_user_rights', user_id=user.id) }}">Edit rights</a><br>
+                </td>
+            </tr>
+        </table>
+    {% endfor %}
+    {% if prev_url %}
+        <a href="{{ prev_url }}">Previous page</a>
+    {% endif %}
+    {% if next_url %}
+        <a href="{{ next_url }}">Next page</a>
+    {% endif %}
+{% endblock %}

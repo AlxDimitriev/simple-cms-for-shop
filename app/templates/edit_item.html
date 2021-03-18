@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block app_content %}
+    <h2>Edit item</h2>
+    {% if item.photo_id %}
+        <img src="{{ get_thumbnail_url(item.photo_id, 500) }}"><br>
+        <a href="{{ url_for('main.delete_item_photos', photo_id=item.photo_id) }}">Delete photo</a>
+    {% endif %}
+    <div class="row">
+        <div class="col-md-4">
+            {{ wtf.quick_form(form) }}
+            <a href="{{ url_for('main.delete_item', item_id=item.id) }}">Delete item</a>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,16 @@
+<table>
+    <tr valign="top">
+        {% if item.photo_id %}
+        <td><img src="{{ get_thumbnail_url(item.photo_id, 120) }}"></td>
+        {% endif %}
+        <td>{{ item.title }} <br> {{ item.price }}</td>
+        <td>
+            {% if current_user.has_edit_rights %}
+                <a href="{{ url_for('main.edit_item', item_id=item.id) }}">Edit item</a><br>
+                <a href="{{ url_for('main.delete_item', item_id=item.id) }}">Delete item</a>
+            {% else %}
+                add to cart
+            {% endif %}
+        </td>
+    </tr>
+</table>
