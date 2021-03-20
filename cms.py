@@ -9,6 +9,4 @@ app = create_app()
 def make_shell_context():
     return {'db': db, 'User': User, 'Item': Item, 'Group': Group}
 
-# (venv) $ pip freeze > requirements.txt
-# (venv) $ pip install -r requirements.txt
 
