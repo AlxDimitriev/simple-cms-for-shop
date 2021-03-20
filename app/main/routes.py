@@ -69,7 +69,8 @@ def edit_item(item_id):
 def delete_item(item_id):
     item = Item.query.filter_by(id=item_id).first_or_404()
     group_id = item.group_id
-    delete_photo(item.photo_id)
+    if item.photo_id:
+        delete_photo(item.photo_id)
     db.session.delete(item)
     db.session.commit()
     flash('Item have been deleted.')

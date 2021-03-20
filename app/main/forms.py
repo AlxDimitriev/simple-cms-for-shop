@@ -8,7 +8,7 @@ class EditItemForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[Length(min=0, max=512)])
     price = FloatField('Price', validators=[DataRequired()])
-    group_id = IntegerField('Group id', validators=[DataRequired()]) # TODO: dropdown list of group names
+    group_id = IntegerField('Group id', validators=[DataRequired()])  # TODO: dropdown list of group names
     image = FileField('image', validators=[FileAllowed(['jpg', 'png'], 'Images only!')])
     submit = SubmitField('Submit')
 

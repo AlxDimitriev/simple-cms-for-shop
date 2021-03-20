@@ -12,7 +12,3 @@ def make_shell_context():
 # (venv) $ pip freeze > requirements.txt
 # (venv) $ pip install -r requirements.txt
 
-# <form action="{{ url_for('main.follow', username=user.username) }}" method="post">
-#     {{ form.hidden_tag() }}
-#     {{ form.submit(value=_('Follow'), class_='btn btn-default') }}
-# </form>
