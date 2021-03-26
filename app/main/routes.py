@@ -1,10 +1,17 @@
-from app.main.forms import EditItemForm, EditGroupForm, EditUserRightsForm
-from flask import render_template, flash, redirect, url_for, request, session, current_app
+from werkzeug.exceptions import abort
+
+from app.main.forms import EditItemForm, EditGroupForm, EditUserRightsForm, SearchForm
+from flask import render_template, flash, redirect, url_for, request, session, current_app, g
 from flask_login import current_user, login_required
 from app.models import User, Item, Group
 from app import db
 from app.main import bp
 from app.utils import upload_photo, edit_rights_required, admin_rights_required, delete_photo
+
+
+@bp.before_app_request
+def before_request():
+    g.search_form = SearchForm()
 
 
 @bp.route('/')
@@ -19,11 +26,13 @@ def index():
 def add_item():
     form = EditItemForm()
     if form.validate_on_submit():
-        item = Item(title=form.title.data,
-                    description=form.description.data,
-                    price=form.price.data,
-                    group_id=form.group_id.data,
-                    photo_id=upload_photo(form.image.data) if form.image.data else None)
+        item = Item(
+            title=form.title.data,
+            description=form.description.data,
+            price=form.price.data,
+            group_id=form.group_id.data,
+            photo_id=upload_photo(form.image.data) if form.image.data else None
+        )
         db.session.add(item)
         db.session.commit()
         flash('Item have been created.')
@@ -89,9 +98,11 @@ def show_item(item_id):
 def add_group():
     form = EditGroupForm()
     if form.validate_on_submit():
-        group = Group(name=form.name.data,
-                      description=form.description.data,
-                      photo_id=upload_photo(form.image.data) if form.image.data else None)
+        group = Group(
+            name=form.name.data,
+            description=form.description.data,
+            photo_id=upload_photo(form.image.data) if form.image.data else None
+        )
         db.session.add(group)
         db.session.commit()
         flash('Group have been created.')
@@ -233,3 +244,18 @@ def delete_item_photos(photo_id):
     item.photo_id = None
     db.session.commit()
     return redirect(session['editing_item'])
+
+
+@bp.route('/search')
+def search():
+    if not g.search_form.validate():
+        return redirect(url_for('main.index'))
+    page = request.args.get('page', 1, type=int)
+    items, total = Item.search(g.search_form.q.data, page,
+                               current_app.config['ITEMS_PER_PAGE'])
+    next_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
+        if total > page * current_app.config['ITEMS_PER_PAGE'] else None
+    prev_url = url_for('main.search', q=g.search_form.q.data, page=page - 1) \
+        if page > 1 else None
+    return render_template('search.html', title='Search', items=items,
+                           next_url=next_url, prev_url=prev_url)

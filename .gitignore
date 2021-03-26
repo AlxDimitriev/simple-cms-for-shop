@@ -39,6 +39,8 @@ venv
 app.db
 cms.log*
 .env
+app/static/images/**/*
+mynotes.txt
 
 # Flask stuff:
 instance/
