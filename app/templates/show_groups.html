@@ -9,7 +9,7 @@
     {% if next_url %}
         <a href="{{ next_url }}">Next page</a>
     {% endif %}
-    {% if current_user.has_edit_rights %}
+    {% if current_user.permission in ('manager', 'admin') %}
         <a href="{{ url_for('main.add_group') }}">Add group</a>
     {% endif %}
 {% endblock %}

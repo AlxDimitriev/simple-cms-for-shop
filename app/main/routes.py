@@ -1,12 +1,10 @@
-from werkzeug.exceptions import abort
-
 from app.main.forms import EditItemForm, EditGroupForm, EditUserRightsForm, SearchForm
 from flask import render_template, flash, redirect, url_for, request, session, current_app, g
 from flask_login import current_user, login_required
 from app.models import User, Item, Group
 from app import db
 from app.main import bp
-from app.utils import upload_photo, edit_rights_required, admin_rights_required, delete_photo
+from app.utils import upload_photo, delete_photo, permission_required
 
 
 @bp.before_app_request
@@ -22,7 +20,7 @@ def index():
 
 @bp.route('/add_item', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def add_item():
     form = EditItemForm()
     if form.validate_on_submit():
@@ -43,7 +41,7 @@ def add_item():
 
 @bp.route('/edit_item/<item_id>', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def edit_item(item_id):
     if 'editing_item' in session:
         del session['editing_item']
@@ -74,7 +72,7 @@ def edit_item(item_id):
 
 @bp.route('/delete_item/<item_id>', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def delete_item(item_id):
     item = Item.query.filter_by(id=item_id).first_or_404()
     group_id = item.group_id
@@ -94,7 +92,7 @@ def show_item(item_id):
 
 @bp.route('/add_group', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def add_group():
     form = EditGroupForm()
     if form.validate_on_submit():
@@ -113,7 +111,7 @@ def add_group():
 
 @bp.route('/edit_group/<group_id>', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def edit_group(group_id):
     if 'editing_group' in session:
         del session['editing_group']
@@ -148,7 +146,7 @@ def edit_group(group_id):
 
 @bp.route('/delete_group/<group_id>', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def delete_group(group_id):
     group = Group.query.filter_by(id=group_id).first_or_404()
     if group.photo_id:
@@ -191,7 +189,7 @@ def show_groups():
 
 @bp.route('/admin_panel', methods=['GET', 'POST'])
 @login_required
-@admin_rights_required
+@permission_required('admin')
 def admin_panel():
     page = request.args.get('page', 1, type=int)
     users = User.query.filter(User.id != current_user.id).paginate(
@@ -207,24 +205,24 @@ def admin_panel():
 
 @bp.route('/admin_panel/<user_id>', methods=['GET', 'POST'])
 @login_required
-@admin_rights_required
+@permission_required('admin')
 def manage_user_rights(user_id):
     user = User.query.filter_by(id=user_id).first_or_404()
-    form = EditUserRightsForm()
-    if form.validate_on_submit():
-        user.level = form.level.data
+    form = EditUserRightsForm(obj=user)
+    form.permissions.choices = [('customer','Customer'), ('manager', 'Manager'), ('admin', 'Admin')]
+    if request.method == 'POST':
+        user.permission = form.permissions.data
         db.session.commit()
         flash('Your changes have been saved.')
-        return redirect(url_for('main.admin_panel'))
     elif request.method == 'GET':
-        form.level.data = user.level
+        form.permissions.data = user.permission
     return render_template('manage_user_rights.html', title='Manage User Rights',
                            form=form, user=user)
 
 
 @bp.route('/delete_group_photos/<photo_id>', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def delete_group_photos(photo_id):
     delete_photo(photo_id)
     flash('Photo have been deleted.')
@@ -236,7 +234,7 @@ def delete_group_photos(photo_id):
 
 @bp.route('/delete_item_photos/<photo_id>', methods=['GET', 'POST'])
 @login_required
-@edit_rights_required
+@permission_required('manager')
 def delete_item_photos(photo_id):
     delete_photo(photo_id)
     flash('Photo have been deleted.')

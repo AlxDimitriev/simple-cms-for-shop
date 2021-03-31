@@ -4,7 +4,7 @@
 {% block app_content %}
     <h2>Edit group</h2>
     {% if group.photo_id %}
-        <img src="{{ get_thumbnail_url(group.photo_id, 500) }}"><br>
+        <img src="{{ get_thumbnail(group.photo_id, 500) }}"><br>
         <a href="{{ url_for('main.delete_group_photos', photo_id=group.photo_id) }}">Delete photo</a>
     {% endif %}
     <div class="row">

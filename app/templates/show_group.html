@@ -4,7 +4,7 @@
 {% block app_content %}
     <h2>{{ group.title }}</h2>
     {% if group.photo_id %}
-        <img src="{{ get_thumbnail_url(group.photo_id, 500) }}">
+        <img src="{{ get_thumbnail(group.photo_id, 500) }}">
     {% endif %}
     {% if group.description %}
         {{ group.description }}

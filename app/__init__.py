@@ -7,7 +7,7 @@ from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-from app.utils import get_thumbnail_url
+from app.utils import get_thumbnail
 from flask_bootstrap import Bootstrap
 from flask_mail import Mail
 
@@ -30,7 +30,7 @@ def create_app(config_class=Config):
     login.init_app(app)
     mail.init_app(app)
     bootstrap.init_app(app)
-    app.jinja_env.globals.update(get_thumbnail_url=get_thumbnail_url)
+    app.jinja_env.globals.update(get_thumbnail=get_thumbnail)
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
         if app.config['ELASTICSEARCH_URL'] else None
 

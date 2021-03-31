@@ -1,11 +1,14 @@
 import jwt
-from flask import current_app
+from flask import current_app, url_for
 from time import time
-from app import db
+from app import db, login
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from app import login
 from app.search import add_to_index, remove_from_index, query_index
+import base64
+from datetime import datetime, timedelta
+import os
+from app.utils import upload_photo
 
 
 class SearchableMixin(object):
@@ -51,12 +54,38 @@ db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
 db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
 
 
-class User(UserMixin, db.Model):
+class PaginatedAPIMixin(object):
+    @staticmethod
+    def to_collection_dict(query, page, per_page, endpoint, **kwargs):
+        resources = query.paginate(page, per_page, False)
+        data = {
+            'items': [item.to_dict(to_collection=True) for item in resources.items],
+            '_meta': {
+                'page': page,
+                'per_page': per_page,
+                'total_pages': resources.pages,
+                'total_items': resources.total
+            },
+            '_links': {
+                'self': url_for(endpoint, page=page, per_page=per_page,
+                                **kwargs),
+                'next': url_for(endpoint, page=page + 1, per_page=per_page,
+                                **kwargs) if resources.has_next else None,
+                'prev': url_for(endpoint, page=page - 1, per_page=per_page,
+                                **kwargs) if resources.has_prev else None
+            }
+        }
+        return data
+
+
+class User(PaginatedAPIMixin, UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
-    level = db.Column(db.Integer)
+    permission = db.Column(db.String(32))
+    token = db.Column(db.String(32), index=True, unique=True)
+    token_expiration = db.Column(db.DateTime)
 
     def __repr__(self):
         return '<User: {} \n Email: {} \n Level: {}>'.format(
@@ -67,16 +96,6 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
-    @property
-    def has_edit_rights(self):
-        if self.level and self.level > 1:
-            return True
-
-    @property
-    def has_admin_rights(self):
-        if self.level and self.level > 2:
-            return True
 
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode(
@@ -96,7 +115,11 @@ class User(UserMixin, db.Model):
         data = {
             'id': self.id,
             'username': self.username,
-            'level': self.level
+            'level': self.level,
+            '_links': {
+                'self': url_for('api.get_user', id=self.id),
+                'get_users': url_for('api.get_users')
+            }
         }
         if include_email:
             data['email'] = self.email
@@ -109,8 +132,27 @@ class User(UserMixin, db.Model):
         if new_user and 'password' in data:
             self.set_password(data['password'])
 
+    def get_token(self, expires_in=3600):
+        now = datetime.utcnow()
+        if self.token and self.token_expiration > now + timedelta(seconds=60):
+            return self.token
+        self.token = base64.b64encode(os.urandom(24)).decode('utf-8')
+        self.token_expiration = now + timedelta(seconds=expires_in)
+        db.session.add(self)
+        return self.token
 
-class Item(SearchableMixin, db.Model):
+    def revoke_token(self):
+        self.token_expiration = datetime.utcnow() - timedelta(seconds=1)
+
+    @staticmethod
+    def check_token(token):
+        user = User.query.filter_by(token=token).first()
+        if user is None or user.token_expiration < datetime.utcnow():
+            return None
+        return user
+
+
+class Item(PaginatedAPIMixin, SearchableMixin, db.Model):
     __searchable__ = ['title']
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(128), index=True)
@@ -123,8 +165,34 @@ class Item(SearchableMixin, db.Model):
         return '<Id: {} \n Title: {} \n Group id: {} \n Photo id: {}>'.format(
             self.id, self.title, self.group_id, self.photo_id)
 
+    def to_dict(self, to_collection=False):
+        thumbnail_size = 500
+        if to_collection:
+            thumbnail_size = 120
+        data = {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'price': self.price,
+            'group_id': self.group_id,
+            'photo_data': self.get_thumbnail(self.photo_id, thumbnail_size, url=False),
+            '_links': {
+                'self': url_for('api.get_item', id=self.id),
+                'group': url_for('api.get_group', id=self.group_id)
+            }
+        }
+        return data
 
-class Group(db.Model):
+    def from_dict(self, data):
+        for field in ['title', 'description', 'price', 'group_id']:
+            if field in data:
+                setattr(self, field, data[field])
+            if 'photo_data' in data:
+                image = base64.b64decode(data['photo_data'])
+                self.photo_id = upload_photo(image)
+
+
+class Group(PaginatedAPIMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     description = db.Column(db.String(512))
@@ -136,6 +204,31 @@ class Group(db.Model):
 
     def get_items(self):
         return Item.query.filter_by(group_id=self.id)
+
+    def to_dict(self, to_collection=False):
+        thumbnail_size = 500
+        if to_collection:
+            thumbnail_size = 120
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'items_count': self.get_items().count(),
+            'photo_data': self.get_thumbnail(self.photo_id, thumbnail_size, url=False),
+            '_links': {
+                'self': url_for('api.get_group', id=self.id),
+                'collection of groups': url_for('api.get_groups')
+            }
+        }
+        return data
+
+    def from_dict(self, data):
+        for field in ['name', 'description']:
+            if field in data:
+                setattr(self, field, data[field])
+            if 'photo_data' in data:
+                image = base64.b64decode(data['photo_data'])
+                self.photo_id = upload_photo(image)
 
 
 @login.user_loader

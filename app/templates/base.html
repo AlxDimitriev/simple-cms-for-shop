@@ -1,7 +1,7 @@
 {% extends 'bootstrap/base.html' %}
 
 {% block title %}
-    {% if title %}{{ title }} - CMS{% else %} Welcome to CMS {% endif %}
+    {% if title %}{{ title }} - CMS{% else %} Simple CMS {% endif %}
 {% endblock %}
 
 {% block navbar %}
@@ -19,7 +19,7 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
                     <li><a href="{{ url_for('main.show_groups') }}">Catalog</a></li>
-                    {% if current_user.has_admin_rights %}
+                    {% if current_user.permission == 'admin' %}
                     <li><a href="{{ url_for('main.admin_panel') }}">Admin Panel</a></li>
                     {% endif %}
                 </ul>

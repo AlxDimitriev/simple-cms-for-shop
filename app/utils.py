@@ -1,3 +1,4 @@
+import base64
 from functools import wraps
 from flask_login import current_user
 from werkzeug.exceptions import abort
@@ -51,29 +52,23 @@ def make_thumbnail(size, filepath):
     img.save(filename)
 
 
-def get_thumbnail_url(photo_id, size):
+def get_thumbnail(photo_id, size, url=True):
     filename, extension = os.path.splitext(photo_id)
     thumbnail_name = filename + '_thumbnail' + str(size) + extension
-    return url_for('static', filename='images/thumbnails/' + thumbnail_name)
+    if url:
+        return url_for('static', filename='images/thumbnails/' + thumbnail_name)
+    image = Image.open(os.path.join(imagedir, 'thumbnails', thumbnail_name))
+    return base64.encode(image)
 
 
-def edit_rights_required(func):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        if current_user.has_edit_rights:
-            return func(*args, **kwargs)
-        else:
-            abort(403)
-    return wrapped
-
-
-def admin_rights_required(func):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        if current_user.has_admin_rights:
-            return func(*args, **kwargs)
-        else:
-            abort(403)
-    return wrapped
-
-
+def permission_required(permission):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if current_user.permission == 'admin':
+                return f(*args, **kwargs)
+            if current_user.permission != permission:
+                abort(403)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
