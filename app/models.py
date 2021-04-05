@@ -88,8 +88,8 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
     token_expiration = db.Column(db.DateTime)
 
     def __repr__(self):
-        return '<User: {} \n Email: {} \n Level: {}>'.format(
-            self.username, self.email, self.level)
+        return '<User: {} \n Email: {} \n Permission: {}>'.format(
+            self.username, self.email, self.permission)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -115,7 +115,7 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
         data = {
             'id': self.id,
             'username': self.username,
-            'level': self.level,
+            'permission': self.permission,
             '_links': {
                 'self': url_for('api.get_user', id=self.id),
                 'get_users': url_for('api.get_users')
@@ -126,7 +126,7 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
         return data
 
     def from_dict(self, data, new_user=False):
-        for field in ['username', 'email', 'level']:
+        for field in ['username', 'email', 'permission']:
             if field in data:
                 setattr(self, field, data[field])
         if new_user and 'password' in data:

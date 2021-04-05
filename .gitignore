@@ -41,7 +41,8 @@ cms.log*
 .env
 app/static/images/**/*
 mynotes.txt
-.idea/**/*
+.idea
+.vagrant
 
 # Flask stuff:
 instance/
