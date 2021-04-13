@@ -33,6 +33,8 @@ class SearchableMixin(object):
 
     @classmethod
     def after_commit(cls, session):
+        if not current_app.elasticsearch:
+            return
         for obj in session._changes['add']:
             if isinstance(obj, SearchableMixin):
                 add_to_index(obj.__tablename__, obj)
