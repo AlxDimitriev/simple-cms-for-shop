@@ -1,13 +1,11 @@
-import jwt
+import jwt, base64, os
 from flask import current_app, url_for
 from time import time
 from app import db, login
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app.search import add_to_index, remove_from_index, query_index
-import base64
 from datetime import datetime, timedelta
-import os
 from app.utils import upload_photo
 
 
@@ -33,7 +31,7 @@ class SearchableMixin(object):
 
     @classmethod
     def after_commit(cls, session):
-        if not current_app.elasticsearch:
+        if not current_app.elasticsearch: # or any other search engine, which you'll use
             return
         for obj in session._changes['add']:
             if isinstance(obj, SearchableMixin):
@@ -160,12 +158,12 @@ class Item(PaginatedAPIMixin, SearchableMixin, db.Model):
     title = db.Column(db.String(128), index=True)
     description = db.Column(db.String(512))
     price = db.Column(db.Float, index=True)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     photo_id = db.Column(db.String(128))
 
     def __repr__(self):
-        return '<Id: {} \n Title: {} \n Group id: {} \n Photo id: {}>'.format(
-            self.id, self.title, self.group_id, self.photo_id)
+        return '<Id: {} \n Title: {} \n Category id: {} \n Photo id: {}>'.format(
+            self.id, self.title, self.category_id, self.photo_id)
 
     def to_dict(self, to_collection=False):
         thumbnail_size = 500
@@ -176,17 +174,17 @@ class Item(PaginatedAPIMixin, SearchableMixin, db.Model):
             'title': self.title,
             'description': self.description,
             'price': self.price,
-            'group_id': self.group_id,
+            'category_id': self.category_id,
             'photo_data': self.get_thumbnail(self.photo_id, thumbnail_size, url=False),
             '_links': {
                 'self': url_for('api.get_item', id=self.id),
-                'group': url_for('api.get_group', id=self.group_id)
+                'category': url_for('api.get_category', id=self.category_id)
             }
         }
         return data
 
     def from_dict(self, data):
-        for field in ['title', 'description', 'price', 'group_id']:
+        for field in ['title', 'description', 'price', 'category_id']:
             if field in data:
                 setattr(self, field, data[field])
             if 'photo_data' in data:
@@ -194,18 +192,18 @@ class Item(PaginatedAPIMixin, SearchableMixin, db.Model):
                 self.photo_id = upload_photo(image)
 
 
-class Group(PaginatedAPIMixin, db.Model):
+class Category(PaginatedAPIMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     description = db.Column(db.String(512))
     photo_id = db.Column(db.String(128))
-    items = db.relationship('Item', backref='group', lazy='dynamic')
+    items = db.relationship('Item', backref='category', lazy='dynamic')
 
     def __repr__(self):
         return '<name:{} \n id:{}> \n photo_id:{}>'.format(self.name, self.id, self.photo_id)
 
     def get_items(self):
-        return Item.query.filter_by(group_id=self.id)
+        return Item.query.filter_by(category_id=self.id)
 
     def to_dict(self, to_collection=False):
         thumbnail_size = 500
@@ -218,8 +216,8 @@ class Group(PaginatedAPIMixin, db.Model):
             'items_count': self.get_items().count(),
             'photo_data': self.get_thumbnail(self.photo_id, thumbnail_size, url=False),
             '_links': {
-                'self': url_for('api.get_group', id=self.id),
-                'collection of groups': url_for('api.get_groups')
+                'self': url_for('api.get_category', id=self.id),
+                'collection of categories': url_for('api.get_categories')
             }
         }
         return data

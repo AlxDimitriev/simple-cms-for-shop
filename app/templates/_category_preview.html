@@ -1,0 +1,24 @@
+<table>
+    <tr valign="top">
+        {% if category.photo_id %}
+        <td>
+            <p>
+                <img src="{{ get_thumbnail(category.photo_id, 120) }}">
+            </p>
+        </td>
+        {% endif %}
+        <td>{{ category.title }}</td>
+        <td>
+            {% if current_user.permission in ('manager', 'admin') %}
+                <p>
+                    <a class="btn btn-default" href="{{ url_for('main.edit_category', category_id=category.id) }}" role="button">Edit</a><br>
+                </p>
+                    <a class="btn btn-danger" href="{{ url_for('main.delete_category', category_id=category.id) }}" role="button">Delete</a>
+            {% else %}
+                <p>
+                    <a class="btn btn-default" href="{{ url_for('main.show_category', category_id=category.id) }}" role="button">Show</a>
+                </p>
+            {% endif %}
+        </td>
+    </tr>
+</table>

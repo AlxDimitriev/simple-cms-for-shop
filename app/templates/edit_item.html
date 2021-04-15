@@ -5,12 +5,16 @@
     <h2>Edit item</h2>
     {% if item.photo_id %}
         <img src="{{ get_thumbnail(item.photo_id, 500) }}"><br>
-        <a href="{{ url_for('main.delete_item_photos', photo_id=item.photo_id) }}">Delete photo</a>
+        <p>
+            <a class="btn btn-danger" href="{{ url_for('main.delete_item_photos', photo_id=item.photo_id) }}" role="button">Delete photo</a>
+        </p>
     {% endif %}
     <div class="row">
         <div class="col-md-4">
             {{ wtf.quick_form(form) }}
-            <a href="{{ url_for('main.delete_item', item_id=item.id) }}">Delete item</a>
+            <p>
+                <a class="btn btn-danger" href="{{ url_for('main.delete_item', item_id=item.id) }}" role="button">Delete</a>
+            </p>
         </div>
     </div>
 {% endblock %}

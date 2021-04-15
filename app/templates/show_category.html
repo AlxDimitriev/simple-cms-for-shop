@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block app_content %}
+    <h2>{{ category.title }}</h2>
+    {% if category.photo_id %}
+        <img src="{{ get_thumbnail(category.photo_id, 500) }}">
+    {% endif %}
+    {% if category.description %}
+        {{ category.description }}
+    {% endif %}
+    {% include '_list_of_items_in_category.html' %}
+    {% if prev_url %}
+        <a href="{{ prev_url }}">Previous page</a>
+    {% endif %}
+    {% if next_url %}
+        <a href="{{ next_url }}">Next page</a>
+    {% endif %}
+{% endblock %}

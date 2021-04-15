@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block app_content %}
+    <h2>Edit category</h2>
+    {% if category.photo_id %}
+        <p>
+            <img src="{{ get_thumbnail(category.photo_id, 500) }}"><br>
+        </p>
+            <a class="btn btn-default" href="{{ url_for('main.delete_category_photos', photo_id=category.photo_id) }}" role="button">Delete</a>
+    {% endif %}
+    <p>
+        <div class="row">
+            <div class="col-md-4">
+                {{ wtf.quick_form(form) }}
+            </div>
+        </div>
+    </p>
+    {% include '_list_of_items_in_category.html' %}
+    {% if prev_url %}
+        <a href="{{ prev_url }}">Previous page</a>
+    {% endif %}
+    {% if next_url %}
+        <a href="{{ next_url }}">Next page</a>
+    {% endif %}
+    <p>
+        <a class="btn btn-default" href="{{ url_for('main.add_item') }}" role="button">Add new item</a>
+    </p>
+{% endblock %}

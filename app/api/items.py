@@ -17,8 +17,8 @@ def get_item(id):
 @permission_required('manager')
 def add_item():
     data = request.get_json() or {}
-    if 'title' not in data or 'price' not in data or 'group_id' not in data:
-        return bad_request('must include title, price and group_id fields')
+    if 'title' not in data or 'price' not in data or 'category_id' not in data:
+        return bad_request('must include title, price and category_id fields')
     item = Item()
     item.from_dict(data)
     db.session.add(item)

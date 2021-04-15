@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, FloatField, IntegerField, SelectField
-from wtforms.validators import DataRequired, Length, NumberRange
+from wtforms.validators import DataRequired, Length
 from flask_wtf.file import FileField, FileAllowed
 from flask import request
 
@@ -9,12 +9,12 @@ class EditItemForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[Length(min=0, max=512)])
     price = FloatField('Price', validators=[DataRequired()])
-    group_id = IntegerField('Group id', validators=[DataRequired()])
+    categories = SelectField('Category', validate_choice=False)
     image = FileField('image', validators=[FileAllowed(['jpg', 'png'], 'Images only!')])
     submit = SubmitField('Submit')
 
 
-class EditGroupForm(FlaskForm):
+class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[Length(min=0, max=512)])
     image = FileField('image', validators=[FileAllowed(['jpg', 'png'], 'Images only!')])

@@ -1,6 +1,5 @@
-import logging
+import logging, os
 from logging.handlers import SMTPHandler, RotatingFileHandler
-import os
 from elasticsearch import Elasticsearch
 from flask import Flask
 from config import Config

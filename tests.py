@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-from datetime import datetime, timedelta
 import unittest
 from app import create_app, db
-from app.models import User, Item, Group
+from app.models import User, Item, Category
 from config import Config
 
 
@@ -30,15 +29,15 @@ class UserModelCase(unittest.TestCase):
         self.assertTrue(u.check_password('cat'))
 
     def test_group_get_items(self):
-        g = Group(name='TEST GROUP NAME')
+        category = Category(name='TEST CATEGORY NAME')
         item1 = Item(title='TEST ITEM NAME 1', group_id=1)
         item2 = Item(title='TEST ITEM NAME 2', group_id=1)
-        db.session.add(g)
+        db.session.add(category)
         db.session.add(item1)
         db.session.add(item2)
         db.session.commit()
-        self.assertTrue(item1 in g.get_items().all())
-        self.assertTrue(item2 in g.get_items().all())
+        self.assertTrue(item1 in category.get_items().all())
+        self.assertTrue(item2 in category.get_items().all())
 
 
 if __name__ == '__main__':

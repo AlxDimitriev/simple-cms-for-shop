@@ -2,18 +2,14 @@
 {% import 'bootstrap/wtf.html' as wtf %}
 
 {% block app_content %}
-    <h2>{{ group.title }}</h2>
-    {% if group.photo_id %}
-        <img src="{{ get_thumbnail(group.photo_id, 500) }}">
-    {% endif %}
-    {% if group.description %}
-        {{ group.description }}
-    {% endif %}
-    {% include '_list_of_items_in_group.html' %}
+    {% include '_list_of_categories.html' %}
     {% if prev_url %}
         <a href="{{ prev_url }}">Previous page</a>
     {% endif %}
     {% if next_url %}
         <a href="{{ next_url }}">Next page</a>
+    {% endif %}
+    {% if current_user.permission in ('manager', 'admin') %}
+        <a class="btn btn-default" href="{{ url_for('main.add_category') }}" role="button">Add category</a>
     {% endif %}
 {% endblock %}

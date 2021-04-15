@@ -1,7 +1,7 @@
-from app.main.forms import EditItemForm, EditGroupForm, EditUserRightsForm, SearchForm
+from app.main.forms import EditItemForm, EditCategoryForm, EditUserRightsForm, SearchForm
 from flask import render_template, flash, redirect, url_for, request, session, current_app, g
 from flask_login import current_user, login_required
-from app.models import User, Item, Group
+from app.models import User, Item, Category
 from app import db
 from app.main import bp
 from app.utils import upload_photo, delete_photo, permission_required
@@ -28,14 +28,14 @@ def add_item():
             title=form.title.data,
             description=form.description.data,
             price=form.price.data,
-            group_id=form.group_id.data,
+            category_id=form.category_id.data,
             photo_id=upload_photo(form.image.data) if form.image.data else None
         )
         db.session.add(item)
         db.session.commit()
         flash('Item have been created.')
-        if 'editing_group' in session:
-            return redirect(session['editing_group'])
+        if 'editing_category' in session:
+            return redirect(session['editing_category'])
     return render_template('add_item.html', title='Add item', form=form)
 
 
@@ -46,13 +46,15 @@ def edit_item(item_id):
     if 'editing_item' in session:
         del session['editing_item']
     item = Item.query.filter_by(id=item_id).first_or_404()
+    categories = Category.query.all()
     form = EditItemForm()
+    form.categories.choices = [(category.id, category.name) for category in categories]
     session['editing_item'] = url_for('main.edit_item', item_id=item_id)
     if form.validate_on_submit():  # Updating
         item.title = form.title.data
         item.description = form.description.data
         item.price = form.price.data
-        item.group_id = form.group_id.data
+        item.category_id = form.categories.data
         if item.photo_id:
             delete_photo(item.photo_id)
             item.photo_id = None
@@ -65,7 +67,7 @@ def edit_item(item_id):
         form.title.data = item.title
         form.description.data = item.description
         form.price.data = item.price
-        form.group_id.data = item.group_id
+        form.categories.data = item.category_id
     return render_template('edit_item.html', title='Edit Item',
                            form=form, item=item)
 
@@ -75,13 +77,13 @@ def edit_item(item_id):
 @permission_required('manager')
 def delete_item(item_id):
     item = Item.query.filter_by(id=item_id).first_or_404()
-    group_id = item.group_id
+    category_id = item.category_id
     if item.photo_id:
         delete_photo(item.photo_id)
     db.session.delete(item)
     db.session.commit()
     flash('Item have been deleted.')
-    return redirect(url_for('main.edit_group', group_id=group_id))
+    return redirect(url_for('main.edit_group', category_id=category_id))
 
 
 @bp.route('/item/<item_id>', methods=['GET'])
@@ -90,100 +92,100 @@ def show_item(item_id):
     return render_template('show_item.html', item=item)
 
 
-@bp.route('/add_group', methods=['GET', 'POST'])
+@bp.route('/add_category', methods=['GET', 'POST'])
 @login_required
 @permission_required('manager')
-def add_group():
-    form = EditGroupForm()
+def add_category():
+    form = EditCategoryForm()
     if form.validate_on_submit():
-        group = Group(
+        category = Category(
             name=form.name.data,
             description=form.description.data,
             photo_id=upload_photo(form.image.data) if form.image.data else None
         )
-        db.session.add(group)
+        db.session.add(category)
         db.session.commit()
-        flash('Group have been created.')
-        if 'editing_groups' in session:
-            return redirect(session['editing_groups'])
-    return render_template('add_group.html', title='Add group', form=form)
+        flash('Category have been created.')
+        if 'editing_categories' in session:
+            return redirect(session['editing_categories'])
+    return render_template('add_category.html', title='Add category', form=form)
 
 
-@bp.route('/edit_group/<group_id>', methods=['GET', 'POST'])
+@bp.route('/edit_category/<category_id>', methods=['GET', 'POST'])
 @login_required
 @permission_required('manager')
-def edit_group(group_id):
-    if 'editing_group' in session:
-        del session['editing_group']
-    group = Group.query.filter_by(id=group_id).first_or_404()
-    form = EditGroupForm()
+def edit_category(category_id):
+    if 'editing_category' in session:
+        del session['editing_category']
+    category = Category.query.filter_by(id=category_id).first_or_404()
+    form = EditCategoryForm()
     page = request.args.get('page', 1, type=int)
-    items = group.get_items().paginate(
+    items = category.get_items().paginate(
         page, current_app.config['ITEMS_PER_PAGE'], True)
-    next_url = url_for('edit_group', group_id=group_id, page=items.next_num) \
+    next_url = url_for('edit_category', category_id=category_id, page=items.next_num) \
         if items.has_next else None
-    prev_url = url_for('edit_group', group_id=group_id, page=items.prev_num) \
+    prev_url = url_for('edit_category', category_id=category_id, page=items.prev_num) \
         if items.has_prev else None
-    session['editing_group'] = url_for('main.edit_group', group_id=group_id)
+    session['editing_category'] = url_for('main.edit_category', category_id=category_id)
     if form.validate_on_submit():  # Updating
-        group.name = form.name.data
-        group.description = form.description.data
-        if group.photo_id:
-            delete_photo(group.photo_id)
-            group.photo_id = None
+        category.name = form.name.data
+        category.description = form.description.data
+        if category.photo_id:
+            delete_photo(category.photo_id)
+            category.photo_id = None
         if form.image.data:
-            group.photo_id = upload_photo(form.image.data)
+            category.photo_id = upload_photo(form.image.data)
         db.session.commit()
         flash('Your changes have been saved.')
-        return redirect(url_for('main.edit_group', group_id=group.id))
+        return redirect(url_for('main.edit_category', category_id=category.id))
     elif request.method == 'GET':  # Rendering
-        form.name.data = group.name
-        form.description.data = group.description
-    return render_template('edit_group.html', title='Edit Group', form=form,
-                           group=group, items=items.items, next_url=next_url,
+        form.name.data = category.name
+        form.description.data = category.description
+    return render_template('edit_category.html', title='Edit Category', form=form,
+                           category=category, items=items.items, next_url=next_url,
                            prev_url=prev_url)
 
 
-@bp.route('/delete_group/<group_id>', methods=['GET', 'POST'])
+@bp.route('/delete_category/<category_id>', methods=['GET', 'POST'])
 @login_required
 @permission_required('manager')
-def delete_group(group_id):
-    group = Group.query.filter_by(id=group_id).first_or_404()
-    if group.photo_id:
-        delete_photo(group.photo_id)
-    db.session.delete(group)
+def delete_category(category_id):
+    category = Category.query.filter_by(id=category_id).first_or_404()
+    if category.photo_id:
+        delete_photo(category.photo_id)
+    db.session.delete(category)
     db.session.commit()
-    flash('Group have been deleted.')
-    return redirect(url_for('main.show_groups'))
+    flash('Category have been deleted.')
+    return redirect(url_for('main.show_categories'))
 
 
-@bp.route('/group/<group_id>', methods=['GET', 'POST'])
-def show_group(group_id):
-    group = Group.query.filter_by(id=group_id).first_or_404()
+@bp.route('/category/<category_id>', methods=['GET', 'POST'])
+def show_category(category_id):
+    category = Category.query.filter_by(id=category_id).first_or_404()
     page = request.args.get('page', 1, type=int)
-    items = group.get_items().paginate(
+    items = category.get_items().paginate(
         page, current_app.config['ITEMS_PER_PAGE'], True)
-    next_url = url_for('main.show_group', group_id=group_id, page=items.next_num) \
+    next_url = url_for('main.show_category', category_id=category_id, page=items.next_num) \
         if items.has_next else None
-    prev_url = url_for('main.show_group', group_id=group_id, page=items.prev_num) \
+    prev_url = url_for('main.show_category', category_id=category_id, page=items.prev_num) \
         if items.has_prev else None
-    return render_template('show_group.html', group=group,
+    return render_template('show_category.html', category=category,
                            items=items.items, next_url=next_url, prev_url=prev_url)
 
 
 @bp.route('/catalog', methods=['GET'])
-def show_groups():
-    if 'editing_groups' in session:
-        del session['editing_groups']
+def show_categories():
+    if 'editing_categories' in session:
+        del session['editing_categories']
     page = request.args.get('page', 1, type=int)
-    groups = Group.query.paginate(
+    categories = Category.query.paginate(
         page, current_app.config['ITEMS_PER_PAGE'], True)
-    next_url = url_for('show_groups', page=groups.next_num) \
-        if groups.has_next else None
-    prev_url = url_for('show_groups', page=groups.prev_num) \
-        if groups.has_prev else None
-    session['editing_groups'] = url_for('main.show_groups')
-    return render_template('show_groups.html', groups=groups.items,
+    next_url = url_for('show_categories', page=categories.next_num) \
+        if categories.has_next else None
+    prev_url = url_for('show_categories', page=categories.prev_num) \
+        if categories.has_prev else None
+    session['editing_categories'] = url_for('main.show_categories')
+    return render_template('show_categories.html', categories=categories.items,
                            next_url=next_url, prev_url=prev_url)
 
 
@@ -220,16 +222,16 @@ def manage_user_rights(user_id):
                            form=form, user=user)
 
 
-@bp.route('/delete_group_photos/<photo_id>', methods=['GET', 'POST'])
+@bp.route('/delete_category_photos/<photo_id>', methods=['GET', 'POST'])
 @login_required
 @permission_required('manager')
-def delete_group_photos(photo_id):
+def delete_category_photos(photo_id):
     delete_photo(photo_id)
     flash('Photo have been deleted.')
-    group = Group.query.filter_by(photo_id=photo_id).first()
-    group.photo_id = None
+    category = Category.query.filter_by(photo_id=photo_id).first()
+    category.photo_id = None
     db.session.commit()
-    return redirect(session['editing_group'])
+    return redirect(session['editing_category'])
 
 
 @bp.route('/delete_item_photos/<photo_id>', methods=['GET', 'POST'])
